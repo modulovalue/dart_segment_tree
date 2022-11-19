@@ -26,8 +26,8 @@ SegmentTree<int> segment_tree_from_list({
   required final List<int> list,
 }) {
   final tree = List<int>.generate(
-    (2 * pow(2, (log(list.length) / log(2)).ceil()).toInt() - 1) + 1,
-        (final i) => 0,
+    2 * (1 << list.length.bitLength),
+    (final i) => 0,
   );
   void _construct_segment_tree({
     required final int start,
@@ -104,109 +104,109 @@ class _SegmentTreeImpl<T> implements SegmentTree<T> {
   final T max_value;
 
   const _SegmentTreeImpl({
-  required final this.tree2,
-  required final this.size,
-  required final this.op,
-  required final this.max_value,
-});
+    required final this.tree2,
+    required final this.size,
+    required final this.op,
+    required final this.max_value,
+  });
 
-@override
-void update_node({
-  required final int position,
-  required final T new_val,
-}) {
+  @override
   void update_node({
-    required final int tree_start,
-    required final int tree_end,
-    required final int node_index,
     required final int position,
     required final T new_val,
   }) {
-    if (tree_start == tree_end) {
-      tree2[node_index] = new_val;
-    } else {
-      final mid = (tree_start + ((tree_end - tree_start) / 2)).floor();
-      if (position < mid) {
-        update_node(
-          tree_start: tree_start,
-          tree_end: mid,
-          node_index: 2 * node_index,
-          position: position,
-          new_val: new_val,
-        );
+    void update_node({
+      required final int tree_start,
+      required final int tree_end,
+      required final int node_index,
+      required final int position,
+      required final T new_val,
+    }) {
+      if (tree_start == tree_end) {
+        tree2[node_index] = new_val;
       } else {
-        update_node(
-          tree_start: mid + 1,
-          tree_end: tree_end,
-          node_index: 2 * node_index + 1,
-          position: position,
-          new_val: new_val,
-        );
-      }
-      tree2[node_index] = op(
-        tree2[2 * node_index],
-        tree2[2 * node_index + 1],
-      );
-    }
-  }
-
-  update_node(
-    node_index: 1,
-    position: position,
-    new_val: new_val,
-    tree_start: 0,
-    tree_end: size - 1,
-  );
-}
-
-@override
-T query({
-  required final int start,
-  required final int end,
-}) {
-  T query_on_segment_tree({
-    required final int start,
-    required final int end,
-    required final int node_index,
-    required final int tree_start,
-    required final int tree_end,
-  }) {
-    if (start > end) {
-      return max_value;
-    } else {
-      // Base Case
-      if (start == tree_start && end == tree_end) {
-        return tree2[node_index];
-      } else {
-        // Finding the index of midpoint
-        final mid = (tree_start + (tree_end - tree_start) / 2).floor();
-        return op(
-          query_on_segment_tree(
-            start: start,
-            end: min<int>(end, mid),
+        final mid = (tree_start + ((tree_end - tree_start) / 2)).floor();
+        if (position < mid) {
+          update_node(
             tree_start: tree_start,
             tree_end: mid,
             node_index: 2 * node_index,
-          ),
-          query_on_segment_tree(
-            start: max<int>(start, mid + 1),
-            end: end,
+            position: position,
+            new_val: new_val,
+          );
+        } else {
+          update_node(
             tree_start: mid + 1,
             tree_end: tree_end,
             node_index: 2 * node_index + 1,
-          ),
+            position: position,
+            new_val: new_val,
+          );
+        }
+        tree2[node_index] = op(
+          tree2[2 * node_index],
+          tree2[2 * node_index + 1],
         );
       }
     }
+
+    update_node(
+      node_index: 1,
+      position: position,
+      new_val: new_val,
+      tree_start: 0,
+      tree_end: size - 1,
+    );
   }
 
-  return query_on_segment_tree(
-    start: start,
-    end: end,
-    node_index: 1,
-    tree_start: 0,
-    tree_end: size - 1,
-  );
-}
+  @override
+  T query({
+    required final int start,
+    required final int end,
+  }) {
+    T query_on_segment_tree({
+      required final int start,
+      required final int end,
+      required final int node_index,
+      required final int tree_start,
+      required final int tree_end,
+    }) {
+      if (start > end) {
+        return max_value;
+      } else {
+        // Base Case
+        if (start == tree_start && end == tree_end) {
+          return tree2[node_index];
+        } else {
+          // Finding the index of midpoint
+          final mid = (tree_start + (tree_end - tree_start) / 2).floor();
+          return op(
+            query_on_segment_tree(
+              start: start,
+              end: min<int>(end, mid),
+              tree_start: tree_start,
+              tree_end: mid,
+              node_index: 2 * node_index,
+            ),
+            query_on_segment_tree(
+              start: max<int>(start, mid + 1),
+              end: end,
+              tree_start: mid + 1,
+              tree_end: tree_end,
+              node_index: 2 * node_index + 1,
+            ),
+          );
+        }
+      }
+    }
+
+    return query_on_segment_tree(
+      start: start,
+      end: end,
+      node_index: 1,
+      tree_start: 0,
+      tree_end: size - 1,
+    );
+  }
 }
 // endregion
